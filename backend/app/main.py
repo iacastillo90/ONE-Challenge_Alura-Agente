@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+from app.api.middleware.rate_limit import RateLimitMiddleware
 from app.api.routes import chat, documents, health, providers
 from app.core.config import settings
 
@@ -29,6 +30,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(RateLimitMiddleware, max_requests=100, window_seconds=60)
 
 app.include_router(health.router, tags=["health"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
