@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import AsyncGenerator
 
 
@@ -22,12 +22,16 @@ class TokenEvent:
     done: bool = False
     full_response: str | None = None
     sources: list[dict] | None = None
+    experiment_id: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
 
 
 class BaseProvider(ABC):
     name: str = ""
     model: str = ""
     priority: int = 99
+    context_window: int = 8192
 
     @abstractmethod
     async def check_health(self) -> ProviderHealth:
