@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -25,7 +25,7 @@ def _make_mock_doc(
     doc.status = status
     doc.chunks = chunks
     doc.file_size = file_size
-    doc.created_at = datetime.now(timezone.utc)
+    doc.created_at = datetime.now(UTC)
     doc.error = error
     return doc
 

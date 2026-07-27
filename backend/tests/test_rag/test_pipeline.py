@@ -4,10 +4,10 @@ import math
 
 import pytest
 
+from app.core.retrieval_config import RetrievalConfig
 from app.rag.embeddings.local import LocalEmbeddingProvider
 from app.rag.ingestion.loader import DocumentLoader
 from app.rag.ingestion.processor import IngestionProcessor
-from app.core.retrieval_config import RetrievalConfig
 from app.rag.ingestion.splitter import RecursiveChunker
 from app.rag.retrieval.retriever import Retriever
 from app.rag.vector_store.base import CollectionStats, Document, VectorStore
@@ -32,7 +32,7 @@ class InMemoryVectorStore(VectorStore):
 
     @staticmethod
     def _cosine(a, b):
-        dot = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b, strict=False))
         na = math.sqrt(sum(x * x for x in a))
         nb = math.sqrt(sum(y * y for y in b))
         return dot / (na * nb) if na and nb else 0.0

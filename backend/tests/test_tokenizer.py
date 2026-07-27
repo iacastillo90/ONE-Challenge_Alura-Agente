@@ -1,6 +1,7 @@
 import pytest
-from app.core.tokenizer import token_counter, _encoding_for_model, _char_multiplier_for_model
+
 from app.core.exceptions import TokenLimitError
+from app.core.tokenizer import _char_multiplier_for_model, _encoding_for_model, token_counter
 
 
 class TestEncodingForModel:
