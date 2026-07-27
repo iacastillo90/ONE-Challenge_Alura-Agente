@@ -6,16 +6,19 @@ __pycache__/
 .venv/
 venv/
 env/
+.mypy_cache/
+.pytest_cache/
 
 # Environment
 .env
 *.env.local
 
-# IDE
+# IDE & Tools
 .vscode/
 .idea/
 *.swp
 *.swo
+.atl/
 
 # OS
 .DS_Store
