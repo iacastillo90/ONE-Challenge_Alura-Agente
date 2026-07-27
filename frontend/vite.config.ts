@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -11,6 +10,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  // @ts-ignore vitest config property
   test: {
     globals: true,
     environment: 'jsdom',
