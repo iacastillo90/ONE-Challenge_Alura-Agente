@@ -1,3 +1,4 @@
+import asyncio
 from typing import AsyncGenerator
 
 from google import genai
@@ -5,7 +6,7 @@ from google.genai import types as gemini_types
 from loguru import logger
 
 from app.core.config import settings
-from app.core.exceptions import ProviderAuthError, ProviderRateLimitError, ProviderUnavailableError
+from app.core.exceptions import ProviderRateLimitError, ProviderUnavailableError
 from app.llm.base import BaseProvider, Message, ProviderHealth, TokenEvent
 
 
@@ -13,6 +14,7 @@ class GeminiProvider(BaseProvider):
     name = "google-gemini"
     model = "gemini-2.0-flash"
     priority = 1
+    context_window = 1_048_576
 
     def __init__(self):
         if not settings.gemini_api_key:
@@ -25,10 +27,11 @@ class GeminiProvider(BaseProvider):
         if not self._client:
             return ProviderHealth(available=False, rate_limited=False, error="API key not configured")
         try:
-            await self._client.aio.models.list()
+            async with asyncio.timeout(10):
+                await self._client.aio.models.get(model=self.model)
             return ProviderHealth(available=True, rate_limited=False)
-        except Exception as e:
-            return ProviderHealth(available=False, rate_limited=False, error=str(e))
+        except Exception:
+            return ProviderHealth(available=False, rate_limited=False, error="Unavailable")
 
     async def generate_stream(
         self,
@@ -62,8 +65,10 @@ class GeminiProvider(BaseProvider):
 
             yield TokenEvent(token="", done=True, full_response=full)
 
+        except asyncio.TimeoutError:
+            raise ProviderUnavailableError("Gemini: timeout exceeded")
         except Exception as e:
             error_str = str(e).lower()
             if "rate" in error_str or "quota" in error_str or "429" in error_str:
-                raise ProviderRateLimitError(f"Gemini rate limited: {e}")
-            raise ProviderUnavailableError(f"Gemini error: {e}")
+                raise ProviderRateLimitError("Gemini: rate limit exceeded")
+            raise ProviderUnavailableError("Gemini: provider error")
