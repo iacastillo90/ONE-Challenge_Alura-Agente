@@ -1,0 +1,143 @@
+{
+  "name": "WhatsApp RAG Bridge",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-inbound",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-inbound",
+      "name": "WhatsApp Inbound",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "whatsapp-inbound"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize the inbound payload from your WhatsApp provider\n// (Meta Cloud API, Twilio, Evolution API, ...). Adjust the field paths\n// below to match your provider's webhook body.\nconst body = $input.first().json.body || $input.first().json;\n\n// --- Meta WhatsApp Cloud API shape (example) ---\nlet phone = '';\nlet text = '';\nlet mediaId = '';\nlet filename = '';\n\ntry {\n  const msg = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];\n  if (msg) {\n    phone = msg.from || '';\n    if (msg.type === 'text') text = msg.text?.body || '';\n    if (msg.type === 'document') {\n      mediaId = msg.document?.id || '';\n      filename = msg.document?.filename || 'document';\n    }\n  }\n} catch (e) {}\n\n// --- Generic fallback (Twilio / custom) ---\nif (!phone) phone = body.from || body.From || body.phone || '';\nif (!text) text = body.text || body.Body || body.message || '';\n\nreturn [{ json: { phone, text, mediaId, filename, isDocument: Boolean(mediaId) } }];"
+      },
+      "id": "normalize",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isDocument }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-document",
+      "name": "Is Document?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL || 'http://backend:8000' }}/webhooks/documents",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Webhook-Secret", "value": "={{ $env.N8N_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"filename\": \"{{ $json.filename }}\",\n  \"content_base64\": \"{{ $json.contentBase64 }}\"\n}",
+        "options": {}
+      },
+      "id": "backend-doc",
+      "name": "Backend: Ingest Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 180],
+      "notes": "Before this node, add a provider-specific step that downloads the media by mediaId and sets $json.contentBase64 (base64 of the file bytes)."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL || 'http://backend:8000' }}/webhooks/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Webhook-Secret", "value": "={{ $env.N8N_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": \"{{ $json.text }}\"\n}",
+        "options": {}
+      },
+      "id": "backend-chat",
+      "name": "Backend: RAG Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WHATSAPP_SEND_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Normalize Payload').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"{{ $json.reply || 'Documento recibido. Ya podés preguntarme sobre su contenido.' }}\" }\n}",
+        "options": {}
+      },
+      "id": "send-reply",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 300],
+      "notes": "Adjust body/URL to your WhatsApp provider send API."
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1360, 300]
+    }
+  ],
+  "connections": {
+    "WhatsApp Inbound": { "main": [[{ "node": "Normalize Payload", "type": "main", "index": 0 }]] },
+    "Normalize Payload": { "main": [[{ "node": "Is Document?", "type": "main", "index": 0 }]] },
+    "Is Document?": {
+      "main": [
+        [{ "node": "Backend: Ingest Document", "type": "main", "index": 0 }],
+        [{ "node": "Backend: RAG Chat", "type": "main", "index": 0 }]
+      ]
+    },
+    "Backend: Ingest Document": { "main": [[{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]] },
+    "Backend: RAG Chat": { "main": [[{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]] },
+    "Send WhatsApp Reply": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "whatsapp" }, { "name": "rag" }]
+}
