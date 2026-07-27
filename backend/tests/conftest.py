@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
@@ -17,27 +17,34 @@ settings.otel_enabled = False
 settings.allowed_hosts = ["localhost", "127.0.0.1", "test", "testserver"]
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(scope="session")
 async def app():
     from app.main import app
     yield app
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def client(app) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def admin_token(client: AsyncClient) -> str:
     resp = await client.post("/auth/login", json={"username": "admin", "password": "admin"})
     assert resp.status_code == 200
     return resp.json()["access_token"]
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def user_token(client: AsyncClient) -> str:
     resp = await client.post("/auth/register", json={"username": "testuser", "password": "testpass123"})
     if resp.status_code == 409:
@@ -46,6 +53,6 @@ async def user_token(client: AsyncClient) -> str:
     return resp.json()["access_token"]
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def auth_headers(user_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {user_token}"}

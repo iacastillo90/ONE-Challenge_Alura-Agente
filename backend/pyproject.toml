@@ -7,5 +7,5 @@ select = ["E", "F", "W"]
 ignore = ["E501"]
 
 [tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "function"
+asyncio_default_fixture_loop_scope = "session"
 asyncio_mode = "auto"
