@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -37,7 +37,7 @@ async def submit_feedback(
         rating=request.rating,
         comment=request.comment,
         experiment_id=request.experiment_id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     async with async_session_factory() as session:
         session.add(record)

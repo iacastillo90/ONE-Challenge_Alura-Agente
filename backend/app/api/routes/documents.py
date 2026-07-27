@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from loguru import logger
 from pydantic import BaseModel
 
@@ -6,7 +6,7 @@ from app.core.auth import verify_jwt
 from app.core.config import settings
 from app.core.dependencies import get_document_service
 from app.core.exceptions import DocumentNotFoundError
-from app.core.security import MIME_MAGIC, matches_mime, validate_text_content, TEXT_EXTENSIONS
+from app.core.security import MIME_MAGIC, TEXT_EXTENSIONS, matches_mime, validate_text_content
 from app.services.document_service import DocumentService
 
 router = APIRouter()

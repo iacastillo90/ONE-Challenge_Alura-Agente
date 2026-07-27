@@ -32,7 +32,7 @@ class GroqProvider(BaseProvider):
             async with asyncio.timeout(10):
                 await self._client.models.retrieve(model=self.model)
             return ProviderHealth(available=True, rate_limited=False)
-        except Exception:  # noqa: BLE001
+        except Exception:
             return ProviderHealth(available=False, rate_limited=False, error="Unavailable")
 
     async def generate_stream(
@@ -64,9 +64,9 @@ class GroqProvider(BaseProvider):
 
             yield TokenEvent(token="", done=True, full_response=full)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise ProviderUnavailableError("Groq: timeout exceeded")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             error_str = str(e).lower()
             if "rate" in error_str or "429" in error_str:
                 raise ProviderRateLimitError("Groq: rate limit exceeded")

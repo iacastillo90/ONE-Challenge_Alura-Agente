@@ -10,7 +10,6 @@ from app.api.middleware.metrics import (
     RETRIEVAL_RESULTS,
     RETRIEVAL_SCORES,
 )
-
 from app.core.cache import rag_cache
 from app.core.config import settings
 from app.core.retrieval_config import DEFAULT_CONFIG, RetrievalConfig

@@ -43,12 +43,12 @@ class TokenQuotaTracker:
 
         minute_key = self._minute_key(user_id)
         minute_used = await rag_cache.get(minute_key) or 0
-        if isinstance(minute_used, (int, float)) and minute_used + total >= self._minute_budget:
+        if isinstance(minute_used, int | float) and minute_used + total >= self._minute_budget:
             raise RAGException("Token rate limit approaching. Slow down your requests.")
 
         daily_key = self._daily_key(user_id)
         daily_used = await rag_cache.get(daily_key) or 0
-        if isinstance(daily_used, (int, float)) and daily_used + total >= self._daily_budget:
+        if isinstance(daily_used, int | float) and daily_used + total >= self._daily_budget:
             raise RAGException("Daily token budget exhausted. Try again tomorrow.")
 
     async def check_and_consume(self, user_id: str, input_tokens: int, output_tokens: int) -> None:

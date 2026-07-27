@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from loguru import logger
 
@@ -52,7 +52,7 @@ refresh_tokens = RedisBackedDict("refresh_token")
 
 
 async def blacklist_jti(jti: str, expires_at: datetime | None = None):
-    ttl = max(60, int((expires_at - datetime.now(timezone.utc)).total_seconds())) if expires_at else 86400
+    ttl = max(60, int((expires_at - datetime.now(UTC)).total_seconds())) if expires_at else 86400
     await jwt_blacklist.add(jti, ttl_seconds=ttl)
 
 
@@ -95,11 +95,11 @@ async def _index_remove(user_id: str, token: str) -> None:
 
 
 async def store_refresh_token(token: str, user_id: str, expires_at: datetime):
-    ttl = max(60, int((expires_at - datetime.now(timezone.utc)).total_seconds()))
+    ttl = max(60, int((expires_at - datetime.now(UTC)).total_seconds()))
     await refresh_tokens.set(token, {
         "user_id": user_id,
         "expires_at": expires_at.isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }, ttl_seconds=ttl)
     await _index_add(user_id, token, ttl)
 
@@ -109,7 +109,7 @@ async def get_refresh_token_data(token: str) -> dict | None:
     if data is None:
         return None
     expires = datetime.fromisoformat(data["expires_at"])
-    if datetime.now(timezone.utc) > expires:
+    if datetime.now(UTC) > expires:
         await refresh_tokens.delete(token)
         return None
     return data

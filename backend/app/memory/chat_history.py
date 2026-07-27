@@ -1,8 +1,8 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from loguru import logger
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 
 from app.core.cache import dist_lock
 from app.core.database import async_session_factory
@@ -56,7 +56,7 @@ class ChatHistoryManager:
                 if len(messages) > max_history:
                     messages = messages[-max_history:]
 
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 if record:
                     record.messages = json.dumps(messages)
                     record.max_history = max_history

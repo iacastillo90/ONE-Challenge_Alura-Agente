@@ -1,10 +1,11 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar
 
 from loguru import logger
-from sqlalchemy import select, func as sa_func
+from sqlalchemy import func as sa_func
+from sqlalchemy import select
 
 from app.api.middleware.metrics import DOCUMENTS_UPLOADED
 from app.core.database import async_session_factory
@@ -43,7 +44,7 @@ class DocumentService:
 
         logger.info(f"Carga guardada: {filename} ({len(content)} bytes) para el usuario {user_id[:8]}...")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = DocumentRecord(
             id=doc_id,
             user_id=user_id,

@@ -1,5 +1,5 @@
-from pathlib import Path
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 from loguru import logger
 from opentelemetry import trace
@@ -7,7 +7,7 @@ from opentelemetry import trace
 from app.core.config import settings
 from app.core.exceptions import RAGException
 from app.core.otel import end_span, start_span
-from app.core.security import (assert_safe_content, moderate_output, sanitize_pii, StreamingSanitizer)
+from app.core.security import StreamingSanitizer, assert_safe_content, moderate_output, sanitize_pii
 from app.core.token_quota import token_quota
 from app.core.tokenizer import token_counter
 from app.llm.base import Message, TokenEvent

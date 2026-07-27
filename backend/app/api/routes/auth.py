@@ -1,31 +1,31 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import jwt as pyjwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.core.auth import (
+    _sso_state,
     audit_log,
     create_refresh_token,
     create_token,
     disable_2fa,
     enable_2fa,
+    exchange_github_code,
+    exchange_google_code,
     generate_totp_secret,
     get_totp_uri,
     get_user_by_id,
     get_user_by_username,
+    github_oauth_url,
+    google_oauth_url,
     revoke_all_user_refresh_tokens,
     revoke_refresh_token,
+    sso_login_or_register,
     verify_2fa,
     verify_credentials,
     verify_jwt,
     verify_refresh_token,
-    sso_login_or_register,
-    google_oauth_url,
-    github_oauth_url,
-    exchange_google_code,
-    exchange_github_code,
-    _sso_state,
 )
 from app.core.cache import rag_cache
 from app.core.config import settings
@@ -261,7 +261,7 @@ async def logout(
             payload = pyjwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
             jti = payload.get("jti")
             if jti:
-                exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc) if payload.get("exp") else datetime.now(timezone.utc)
+                exp = datetime.fromtimestamp(payload["exp"], tz=UTC) if payload.get("exp") else datetime.now(UTC)
                 from app.core.auth import blacklist_jti
                 await blacklist_jti(jti, exp)
         except Exception:

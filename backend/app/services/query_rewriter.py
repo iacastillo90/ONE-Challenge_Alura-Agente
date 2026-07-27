@@ -2,14 +2,13 @@ import re
 
 from app.llm.base import Message
 
-
 STOP_WORDS = {
     "un", "una", "unos", "unas", "el", "la", "los", "las",
     "y", "e", "o", "u", "de", "del", "en", "por", "para",
     "con", "sin", "a", "ante", "bajo", "cabe", "contra",
     "es", "son", "fue", "era", "ser", "estar", "tener",
     "hay", "hacer", "puede", "como", "qué", "que", "se",
-    "su", "sus", "le", "les", "lo", "la", "las", "los",
+    "su", "sus", "le", "les", "lo",
 }
 
 

@@ -139,7 +139,7 @@ class DistributedLock:
         key = self._key(name)
         r = await self._cache._get_redis()
         if r is not None:
-            for attempt in range(50):
+            for _attempt in range(50):
                 acquired = await r.setnx(key, "1")
                 if acquired:
                     await r.expire(key, ttl)

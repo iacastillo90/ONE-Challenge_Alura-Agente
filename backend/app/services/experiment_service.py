@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from loguru import logger
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session_factory
 from app.core.models import ExperimentRecord, FeedbackRecord
 from app.core.retrieval_config import DEFAULT_CONFIG, RetrievalConfig
-
-
 
 
 def _user_bucket(user_id: str) -> int:
@@ -93,8 +91,8 @@ async def create_experiment(
         config=config,
         is_active=True,
         traffic_percent=max(0, min(100, traffic_percent)),
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     session.add(record)
     await session.commit()
@@ -114,7 +112,7 @@ async def update_experiment(
     for key, value in kwargs.items():
         if hasattr(record, key) and value is not None:
             setattr(record, key, value)
-    record.updated_at = datetime.now(timezone.utc)
+    record.updated_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(record)
     return record

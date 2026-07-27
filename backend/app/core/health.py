@@ -1,5 +1,5 @@
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
-from typing import Callable, Coroutine
 
 from loguru import logger
 
@@ -27,7 +27,7 @@ class HealthRegistry:
             try:
                 ok = await asyncio.wait_for(fn(), timeout=5.0)
                 results.append(HealthStatus(name=name, ok=bool(ok)))
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 results.append(HealthStatus(name=name, ok=False, detail="timeout"))
             except Exception as e:
                 results.append(HealthStatus(name=name, ok=False, detail=str(e)))

@@ -21,7 +21,6 @@ from app.core.otel import setup_otel, shutdown_otel
 from app.core.tracing import RequestLogMiddleware
 from app.services.task_queue import get_task_queue
 
-
 _background_tasks: list[asyncio.Task] = []
 
 
@@ -70,8 +69,9 @@ async def lifespan(app: FastAPI):
 
 
 def _register_health_checks():
-    from app.core.database import engine
     from sqlalchemy import text
+
+    from app.core.database import engine
 
     async def _db_check():
         async with engine.connect() as conn:

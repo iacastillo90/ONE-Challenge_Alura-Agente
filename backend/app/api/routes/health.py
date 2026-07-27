@@ -5,8 +5,8 @@ from app.core.dependencies import (
     get_provider_router,
     get_vector_store,
 )
-from app.rag.vector_store.base import VectorStore
 from app.llm.router import ProviderRouter
+from app.rag.vector_store.base import VectorStore
 
 router = APIRouter()
 

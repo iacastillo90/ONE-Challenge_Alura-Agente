@@ -5,7 +5,7 @@ import hmac
 import os
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
@@ -17,14 +17,20 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.redis_store import (
     blacklist_jti as blacklist_jti,
+)
+from app.core.redis_store import (
     get_login_attempts,
     get_refresh_token_data,
     increment_login_attempts,
     is_jti_blacklisted,
     reset_login_attempts,
-    revoke_all_user_refresh_tokens as revoke_all_user_refresh_tokens,
-    revoke_refresh_token as revoke_refresh_token,
     store_refresh_token,
+)
+from app.core.redis_store import (
+    revoke_all_user_refresh_tokens as revoke_all_user_refresh_tokens,
+)
+from app.core.redis_store import (
+    revoke_refresh_token as revoke_refresh_token,
 )
 
 security = HTTPBearer(auto_error=False)
@@ -48,8 +54,8 @@ def create_token(user_id: str, expire_minutes: int | None = None) -> str:
     jti = secrets.token_hex(16)
     payload = {
         "sub": user_id,
-        "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=expire),
+        "iat": datetime.now(UTC),
+        "exp": datetime.now(UTC) + timedelta(minutes=expire),
         "jti": jti,
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
@@ -57,7 +63,7 @@ def create_token(user_id: str, expire_minutes: int | None = None) -> str:
 
 async def create_refresh_token(user_id: str) -> tuple[str, str]:
     token = secrets.token_hex(REFRESH_TOKEN_BYTES)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRE_DAYS)
+    expires_at = datetime.now(UTC) + timedelta(days=REFRESH_EXPIRE_DAYS)
     await store_refresh_token(token, user_id, expires_at)
     return token, expires_at.isoformat()
 

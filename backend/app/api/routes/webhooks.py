@@ -104,7 +104,7 @@ async def webhook_chat(
             if event.done:
                 reply = event.full_response or ""
                 sources = event.sources or []
-    except Exception as exc:  # noqa: BLE001 - surface a safe message to n8n
+    except Exception as exc:
         logger.error(f"Webhook chat failed for wa:{phone[:4]}...: {exc}")
         raise HTTPException(status_code=502, detail="No se pudo generar una respuesta en este momento")
 
@@ -179,7 +179,7 @@ async def whatsapp_send(
         await send_whatsapp_via_n8n(_normalize_phone(to), request.message)
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error(f"Outbound WhatsApp send failed: {exc}")
         raise HTTPException(status_code=502, detail="No se pudo enviar el mensaje de WhatsApp")
 

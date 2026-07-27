@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 
 
 @dataclass

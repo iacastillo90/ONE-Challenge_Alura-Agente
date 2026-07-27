@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from loguru import logger
@@ -73,7 +73,7 @@ async def process_document(
             if doc is not None:
                 doc.status = "ready"
                 doc.chunks = chunk_count
-                doc.updated_at = datetime.now(timezone.utc)
+                doc.updated_at = datetime.now(UTC)
                 await session.commit()
 
         DOCUMENTS_UPLOADED.labels(status="completed").inc()
@@ -87,7 +87,7 @@ async def process_document(
             if doc is not None:
                 doc.status = "error"
                 doc.error = str(exc)[:500]
-                doc.updated_at = datetime.now(timezone.utc)
+                doc.updated_at = datetime.now(UTC)
                 await session.commit()
         logger.error(f"Document {doc_id[:8]}... processing failed: {exc}")
         raise
@@ -104,7 +104,7 @@ SESSION_MAX_AGE_DAYS = 30
 
 
 async def cleanup_old_sessions(ctx: dict) -> None:
-    cutoff = datetime.now(timezone.utc) - timedelta(days=SESSION_MAX_AGE_DAYS)
+    cutoff = datetime.now(UTC) - timedelta(days=SESSION_MAX_AGE_DAYS)
     async with async_session_factory() as session:
         result = await session.execute(
             ChatSessionRecord.__table__.delete().where(

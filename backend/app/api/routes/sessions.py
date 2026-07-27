@@ -6,9 +6,9 @@ from sqlalchemy import func, select
 
 from app.core.auth import verify_jwt
 from app.core.database import async_session_factory
+from app.core.dependencies import get_chat_history
 from app.core.models import ChatSessionRecord
 from app.memory.chat_history import ChatHistoryManager
-from app.core.dependencies import get_chat_history
 
 router = APIRouter()
 

@@ -9,7 +9,6 @@ from starlette.responses import JSONResponse
 
 from app.core.config import settings
 
-
 IP_LIMIT = 600
 IP_WINDOW = 60
 USER_LIMIT = 300
@@ -69,7 +68,7 @@ class RedisRateLimiter(BaseHTTPMiddleware):
         try:
             async with asyncio.timeout(2.0):
                 await self._global_semaphore.acquire()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return JSONResponse(
                 status_code=503,
                 content={"error": {"code": "SERVER_BUSY", "message": "Server at capacity, try again later"}},
