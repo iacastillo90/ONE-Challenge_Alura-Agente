@@ -1,5 +1,6 @@
-import { NavLink } from "react-router-dom"
+import { NavLink, useNavigate } from "react-router-dom"
 import { useChatStore } from "@/store/chatStore"
+import { useAuthStore } from "@/store/authStore"
 
 const nav = [
   { to: "/chat", label: "Chat", icon: "💬" },
@@ -8,9 +9,17 @@ const nav = [
 ]
 
 export function Sidebar() {
+  const navigate = useNavigate()
   const sessions = useChatStore((s) => s.sessions)
   const activeSession = useChatStore((s) => s.activeSession)
   const newSession = useChatStore((s) => s.newSession)
+  const username = useAuthStore((s) => s.username)
+  const logout = useAuthStore((s) => s.logout)
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login", { replace: true })
+  }
 
   return (
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col shrink-0 hidden md:flex">
@@ -63,7 +72,16 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-gray-100">
+      <div className="p-3 border-t border-gray-100 space-y-2">
+        {username && (
+          <div className="text-xs text-gray-500 truncate">Usuario: {username}</div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="w-full text-left text-xs text-gray-400 hover:text-red-500 transition-colors"
+        >
+          Cerrar sesión
+        </button>
         <div className="text-xs text-gray-400">ONE AI FOR TECH</div>
       </div>
     </aside>
