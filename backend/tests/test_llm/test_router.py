@@ -60,7 +60,7 @@ async def test_router_all_providers_fail():
     p2 = MockProvider("p2", priority=2).fail_after(0)
     router = ProviderRouter([p1, p2])
 
-    with pytest.raises(Exception, match="All providers failed"):
+    with pytest.raises(Exception, match="Todos los proveedores fallaron"):
         async for _ in router.generate_stream([Message(role="user", content="test")]):
             pass
 
