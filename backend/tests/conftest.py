@@ -17,15 +17,7 @@ settings.otel_enabled = False
 settings.allowed_hosts = ["localhost", "127.0.0.1", "test", "testserver"]
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    import asyncio
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def app():
     from app.main import app
     yield app
@@ -50,7 +42,7 @@ async def user_token(client: AsyncClient) -> str:
     resp = await client.post("/auth/register", json={"username": "testuser", "password": "testpass123"})
     if resp.status_code == 409:
         resp = await client.post("/auth/login", json={"username": "testuser", "password": "testpass123"})
-    assert resp.status_code == 200, f"Register/login failed: {resp.text}"
+    assert resp.status_code in (200, 201), f"Register/login failed: {resp.text}"
     return resp.json()["access_token"]
 
 
