@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+.git/
+.env
+tests/
+logs/
+chroma_data/
+chat_history.db
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
