@@ -1,10 +1,11 @@
+import asyncio
 from typing import AsyncGenerator
 
 from loguru import logger
 from openai import AsyncOpenAI
 
 from app.core.config import settings
-from app.core.exceptions import ProviderAuthError, ProviderRateLimitError, ProviderUnavailableError
+from app.core.exceptions import ProviderRateLimitError, ProviderUnavailableError
 from app.llm.base import BaseProvider, Message, ProviderHealth, TokenEvent
 
 
@@ -12,6 +13,7 @@ class GroqProvider(BaseProvider):
     name = "groq"
     model = "llama-3.3-70b-versatile"
     priority = 2
+    context_window = 131_072
 
     def __init__(self):
         if not settings.groq_api_key:
@@ -27,10 +29,11 @@ class GroqProvider(BaseProvider):
         if not self._client:
             return ProviderHealth(available=False, rate_limited=False, error="API key not configured")
         try:
-            await self._client.models.list()
+            async with asyncio.timeout(10):
+                await self._client.models.retrieve(model=self.model)
             return ProviderHealth(available=True, rate_limited=False)
-        except Exception as e:
-            return ProviderHealth(available=False, rate_limited=False, error=str(e))
+        except Exception:
+            return ProviderHealth(available=False, rate_limited=False, error="Unavailable")
 
     async def generate_stream(
         self,
@@ -61,8 +64,10 @@ class GroqProvider(BaseProvider):
 
             yield TokenEvent(token="", done=True, full_response=full)
 
+        except asyncio.TimeoutError:
+            raise ProviderUnavailableError("Groq: timeout exceeded")
         except Exception as e:
             error_str = str(e).lower()
             if "rate" in error_str or "429" in error_str:
-                raise ProviderRateLimitError(f"Groq rate limited: {e}")
-            raise ProviderUnavailableError(f"Groq error: {e}")
+                raise ProviderRateLimitError("Groq: rate limit exceeded")
+            raise ProviderUnavailableError("Groq: provider error")
