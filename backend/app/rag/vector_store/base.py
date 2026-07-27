@@ -32,6 +32,8 @@ class VectorStore(ABC):
         query_embedding: list[float],
         k: int = 5,
         score_threshold: float = 0.0,
+        query_str: str | None = None,
+        user_id: str | None = None,
     ) -> list[Document]:
         ...
 
