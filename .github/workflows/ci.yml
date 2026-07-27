@@ -1,0 +1,118 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install backend deps
+        run: |
+          cd backend
+          pip install ruff mypy
+          pip install -r requirements.txt
+
+      - name: Python lint
+        run: cd backend && ruff check app/ tests/
+
+      - name: Python type check
+        run: cd backend && mypy app/ || true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install frontend deps
+        run: cd frontend && npm ci
+
+      - name: Frontend lint
+        run: cd frontend && npm run lint
+
+      - name: Frontend type check
+        run: cd frontend && npx tsc --noEmit
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: agent
+          POSTGRES_PASSWORD: agent
+          POSTGRES_DB: agent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U agent
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install deps
+        run: |
+          cd backend
+          pip install pytest pytest-asyncio pytest-cov httpx
+          pip install -r requirements.txt
+
+      - name: Run database migrations
+        run: cd backend && python -c "import asyncio; from app.core.database import init_db; asyncio.run(init_db())"
+        env:
+          ENVIRONMENT: development
+          DATABASE_URL: postgresql+asyncpg://agent:agent@localhost:5432/agent
+          VECTOR_STORE_TYPE: pgvector
+          REDIS_URL: redis://localhost:6379/0
+
+      - name: Run tests
+        run: cd backend && pytest tests/ -v --asyncio-mode=auto --cov=app --cov-report=term-missing --cov-report=xml
+        env:
+          ENVIRONMENT: development
+          DATABASE_URL: postgresql+asyncpg://agent:agent@localhost:5432/agent
+          VECTOR_STORE_TYPE: pgvector
+          REDIS_URL: redis://localhost:6379/0
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t one-agent-backend ./backend
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
