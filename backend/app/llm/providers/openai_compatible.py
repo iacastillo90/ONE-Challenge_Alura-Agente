@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 from urllib.parse import urlparse
 
 from loguru import logger
@@ -41,7 +41,7 @@ class OpenAICompatibleProvider(BaseProvider):
             async with asyncio.timeout(10):
                 await self._client.models.retrieve(model=self.model)
             return ProviderHealth(available=True, rate_limited=False)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return ProviderHealth(available=False, rate_limited=False, error="Unavailable")
 
     async def generate_stream(
@@ -75,7 +75,7 @@ class OpenAICompatibleProvider(BaseProvider):
 
         except asyncio.TimeoutError:
             raise ProviderUnavailableError("OpenAI-compatible: timeout exceeded")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             error_str = str(e).lower()
             if "rate" in error_str or "429" in error_str:
                 raise ProviderRateLimitError("OpenAI-compatible: rate limit exceeded")

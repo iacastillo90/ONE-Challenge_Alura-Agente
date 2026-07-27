@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from loguru import logger
 from openai import AsyncOpenAI
@@ -32,7 +32,7 @@ class GroqProvider(BaseProvider):
             async with asyncio.timeout(10):
                 await self._client.models.retrieve(model=self.model)
             return ProviderHealth(available=True, rate_limited=False)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return ProviderHealth(available=False, rate_limited=False, error="Unavailable")
 
     async def generate_stream(
@@ -66,7 +66,7 @@ class GroqProvider(BaseProvider):
 
         except asyncio.TimeoutError:
             raise ProviderUnavailableError("Groq: timeout exceeded")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             error_str = str(e).lower()
             if "rate" in error_str or "429" in error_str:
                 raise ProviderRateLimitError("Groq: rate limit exceeded")

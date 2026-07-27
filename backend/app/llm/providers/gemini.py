@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from google import genai
 from google.genai import types as gemini_types
@@ -30,7 +30,7 @@ class GeminiProvider(BaseProvider):
             async with asyncio.timeout(10):
                 await self._client.aio.models.get(model=self.model)
             return ProviderHealth(available=True, rate_limited=False)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return ProviderHealth(available=False, rate_limited=False, error="Unavailable")
 
     async def generate_stream(
@@ -67,7 +67,7 @@ class GeminiProvider(BaseProvider):
 
         except asyncio.TimeoutError:
             raise ProviderUnavailableError("Gemini: timeout exceeded")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             error_str = str(e).lower()
             if "rate" in error_str or "quota" in error_str or "429" in error_str:
                 raise ProviderRateLimitError("Gemini: rate limit exceeded")

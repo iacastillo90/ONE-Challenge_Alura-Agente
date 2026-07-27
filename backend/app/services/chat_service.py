@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from loguru import logger
 from opentelemetry import trace

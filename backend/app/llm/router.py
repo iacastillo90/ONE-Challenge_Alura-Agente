@@ -1,7 +1,7 @@
 import asyncio
 import time
 from dataclasses import dataclass
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from loguru import logger
 
