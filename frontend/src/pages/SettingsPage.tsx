@@ -1,8 +1,34 @@
+import { useState } from "react"
 import { useProviders } from "@/hooks/useProviders"
 import { Button } from "@/components/common/Button"
+import { Input } from "@/components/common/Input"
+import { sendWhatsApp } from "@/services/whatsappService"
 
 export function SettingsPage() {
   const { providers, activeProvider, switchProvider } = useProviders()
+
+  const [waNumber, setWaNumber] = useState("")
+  const [waMessage, setWaMessage] = useState("")
+  const [waStatus, setWaStatus] = useState<{ ok: boolean; text: string } | null>(null)
+  const [waSending, setWaSending] = useState(false)
+
+  const handleSendWhatsApp = async () => {
+    if (!waMessage.trim()) return
+    setWaSending(true)
+    setWaStatus(null)
+    try {
+      const res = await sendWhatsApp(waMessage.trim(), waNumber.trim() || undefined)
+      setWaStatus({ ok: true, text: `Mensaje enviado a ${res.to}` })
+      setWaMessage("")
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        "No se pudo enviar el mensaje"
+      setWaStatus({ ok: false, text: detail })
+    } finally {
+      setWaSending(false)
+    }
+  }
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -59,13 +85,46 @@ export function SettingsPage() {
       </section>
 
       <section className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-2">WhatsApp</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Enviá un mensaje a un número de WhatsApp a través de la orquestación n8n.
+          Si dejás el número vacío se usa el número por defecto de la plataforma.
+        </p>
+        <div className="space-y-3">
+          <Input
+            label="Número destino (E.164, opcional)"
+            type="tel"
+            value={waNumber}
+            onChange={(e) => setWaNumber(e.target.value)}
+            placeholder="+5491122334455"
+          />
+          <Input
+            label="Mensaje"
+            type="text"
+            value={waMessage}
+            onChange={(e) => setWaMessage(e.target.value)}
+            placeholder="Hola desde ONE AI Agent"
+          />
+          {waStatus && (
+            <p className={`text-sm ${waStatus.ok ? "text-green-600" : "text-red-500"}`}>
+              {waStatus.text}
+            </p>
+          )}
+          <Button onClick={handleSendWhatsApp} loading={waSending} disabled={!waMessage.trim()}>
+            Enviar por WhatsApp
+          </Button>
+        </div>
+      </section>
+
+      <section className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-2">
           Acerca del Proyecto
         </h2>
         <p className="text-sm text-gray-500">
           Challenge ONE AI FOR TECH — Alura Latam. Agente inteligente con RAG,
           soporte multi-provider LLM, embeddings locales (sentence-transformers),
-          ChromaDB vector store y orquestación vía n8n.
+          vector store en PostgreSQL + pgvector, almacenamiento de archivos en
+          MinIO y orquestación vía n8n (incluye canal WhatsApp).
         </p>
       </section>
     </div>
