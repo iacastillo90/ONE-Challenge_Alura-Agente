@@ -1,3 +1,4 @@
+import asyncio
 from typing import AsyncGenerator
 
 from loguru import logger
@@ -12,6 +13,7 @@ class DeepSeekProvider(BaseProvider):
     name = "deepseek"
     model = "deepseek-chat"
     priority = 3
+    context_window = 64_000
 
     def __init__(self):
         if not settings.deepseek_api_key:
@@ -26,7 +28,13 @@ class DeepSeekProvider(BaseProvider):
     async def check_health(self) -> ProviderHealth:
         if not self._client:
             return ProviderHealth(available=False, rate_limited=False, error="API key not configured")
-        return ProviderHealth(available=True, rate_limited=False)
+        try:
+            async with asyncio.timeout(10):
+                await self._client.models.retrieve(model=self.model)
+            return ProviderHealth(available=True, rate_limited=False)
+        except Exception as e:
+            logger.warning(f"DeepSeek health check failed: {e}")
+            return ProviderHealth(available=False, rate_limited=False, error=str(e))
 
     async def generate_stream(
         self,
@@ -57,8 +65,10 @@ class DeepSeekProvider(BaseProvider):
 
             yield TokenEvent(token="", done=True, full_response=full)
 
+        except asyncio.TimeoutError:
+            raise ProviderUnavailableError("DeepSeek: timeout exceeded")
         except Exception as e:
             error_str = str(e).lower()
             if "rate" in error_str or "429" in error_str:
-                raise ProviderRateLimitError(f"DeepSeek rate limited: {e}")
-            raise ProviderUnavailableError(f"DeepSeek error: {e}")
+                raise ProviderRateLimitError("DeepSeek: rate limit exceeded")
+            raise ProviderUnavailableError("DeepSeek: provider error")
