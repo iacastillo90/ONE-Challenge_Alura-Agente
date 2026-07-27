@@ -3,18 +3,21 @@ from pathlib import Path
 
 from loguru import logger
 
-from app.core.exceptions import DocumentProcessingError
+from app.core.config import settings
+from app.core.security import assert_safe_content
 from app.rag.embeddings.base import EmbeddingProvider
 from app.rag.ingestion.loader import DocumentLoader
-from app.rag.ingestion.splitter import SemanticChunker
+from app.rag.ingestion.splitter import RecursiveChunker
 from app.rag.vector_store.base import VectorStore
 
 
 class IngestionProcessor:
+    MAX_CHUNKS = settings.max_chunks_per_document
+
     def __init__(
         self,
         loader: DocumentLoader,
-        splitter: SemanticChunker,
+        splitter: RecursiveChunker,
         embedding_provider: EmbeddingProvider,
         vector_store: VectorStore,
     ):
@@ -23,20 +26,37 @@ class IngestionProcessor:
         self._embedding_provider = embedding_provider
         self._vector_store = vector_store
 
-    async def process(self, file_path: str | Path, document_id: str) -> int:
+    async def process(
+        self,
+        file_path: str | Path,
+        document_id: str,
+        original_size: int = 0,
+        user_id: str | None = None,
+        source_name: str | None = None,
+    ) -> int:
         start = time.perf_counter()
         file_path = Path(file_path)
-        logger.info(f"Processing document: {file_path.name} (id={document_id})")
+        source = source_name or file_path.name
+        logger.info(f"Processing document: {source} (id={document_id})")
 
-        raw_text = await self._loader.load(file_path)
-        logger.info(f"Extracted {len(raw_text)} chars from {file_path.name}")
+        raw_text = await self._loader.load(file_path, original_size)
+        logger.info(f"Extracted {len(raw_text)} chars from {source}")
 
-        chunks = self._splitter.split_text(raw_text, source=file_path.name)
+        assert_safe_content(raw_text, context=f"document {source}")
+
+        chunks = self._splitter.split_text(raw_text, source=source)
+
+        if len(chunks) > self.MAX_CHUNKS:
+            logger.warning(
+                f"Truncating {len(chunks)} chunks to {self.MAX_CHUNKS} for {file_path.name}"
+            )
+            chunks = chunks[: self.MAX_CHUNKS]
+
         logger.info(f"Split into {len(chunks)} chunks")
 
         chunk_texts = [c.content for c in chunks]
         metadatas = [
-            {**c.metadata, "document_id": document_id, "chunk_index": i}
+            {**c.metadata, "document_id": document_id, "chunk_index": i, "user_id": user_id or ""}
             for i, c in enumerate(chunks)
         ]
 
@@ -46,6 +66,8 @@ class IngestionProcessor:
         await self._vector_store.add_texts(chunk_texts, embeddings, metadatas)
 
         elapsed = time.perf_counter() - start
-        logger.info(f"Document {file_path.name} processed in {elapsed:.2f}s — {len(chunks)} chunks")
+        logger.info(
+            f"Document {file_path.name} processed in {elapsed:.2f}s — {len(chunks)} chunks"
+        )
 
         return len(chunks)
